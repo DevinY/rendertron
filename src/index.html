@@ -162,7 +162,7 @@ the License.
   </head>
   <body>
     <h1>Rendertron</h1>
-
+    GoogleChrome/rendertron加入render pdf的API
     <div id="search-bar">
       <input id="url" type="url" placeholder="Enter a URL" autocapitalize="off" spellcheck="false">
       <progress-bar hidden></progress-bar>
@@ -181,7 +181,11 @@ the License.
         <i class="material-icons">code</i>
         <span>Render &amp; serialize with web components v1</span>
       </button>
-      <a href="https://github.com/samuelli/bot-render" target="_blank">
+      <button onclick="createPdf(this)">
+        <i class="material-icons">description</i>
+        <span>Render Pdf</span>
+      </button>
+      <a href="https://github.com/DevinY/rendertron" target="_blank">
         <button tabindex="-1">
           <i class="material-icons">insert_drive_file</i>
           <span>View documentation</span>
@@ -219,6 +223,23 @@ the License.
       element.classList.add('loading');
       document.querySelector('progress-bar').removeAttribute('hidden');
       window.location.href += `screenshot/${url.value.replace('?', '%3F')}?width=${window.innerWidth}&height=${window.innerHeight}`;
+    }
+
+    function createPdf(element) {
+      if (!url.value) {
+        onEmptyUrl();
+        return;
+      }
+
+      var httpRegex = /(http(s?))\:\/\//gi;
+
+      if(!httpRegex.test(url.value)) {
+        url.value = 'https://' + url.value;
+      }
+
+      element.classList.add('loading');
+      document.querySelector('progress-bar').removeAttribute('hidden');
+      window.location.href += `pdf/${url.value.replace('?', '%3F')}`;
     }
 
     function onEmptyUrl() {

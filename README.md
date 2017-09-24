@@ -20,6 +20,7 @@ to be used as a production endpoint. You can use it, but there are no uptime gua
 - [API](#api)
   - [Render](#render)
   - [Screenshot](#screenshot)
+  - [Pdf](#pdf)
 - [FAQ](#faq)
   - [Query parameters](#query-parameters)
   - [Auto detecting loading function](#auto-detecting-loading-function)
@@ -61,6 +62,15 @@ The `screenshot` endpoint can be used to verify that your page is rendering corr
 Available options:
  * `width` default `1000` - used to set the viewport width (max 2000)
  * `height` default `1000` - used to set the viewport height (max 2000)
+
+### Pdf
+```
+/pdf/<url>
+```
+
+The `pdf` endpoint can be used to create pdf file.
+Available options:
+ * `landscap` default `false` - used to set landscap
 
 ## FAQ
 

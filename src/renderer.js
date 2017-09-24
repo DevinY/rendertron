@@ -224,6 +224,37 @@ class Renderer {
       }
     });
   }
+  //createPdf
+  createPdf(url, options, config) {
+    return new Promise(async(resolve, reject) => {
+      const tab = await CDP.New({port: config.port});
+      const client = await CDP({tab: tab, port: config.port});
+      const {Page} = client;
+      const landscape = (options['landscape'])?options['landscape']:false;
+      const printBackground = options['background']?options['landscape']:false;
+
+    try {
+        await Page.enable();
+        await Page.navigate({url: url});
+        await Page.loadEventFired();
+        const {data} = await Page.printToPDF({
+            landscape: landscape,
+            printBackground: printBackground,
+            marginTop: 0,
+            marginBottom: 0,
+            marginLeft: 0,
+            marginRight: 0
+        });
+        CDP.Close({id: client.target.id, port: config.port});
+        resolve(data);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          await client.close();
+        }
+
+    });
+  }
 }
 
 module.exports = new Renderer();
