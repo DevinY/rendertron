@@ -7,6 +7,9 @@ LABEL name="bot-render" \
 
 RUN apt-get update && apt-get install -y \
   wget \
+  locales \
+  fonts-arphic-uming fonts-wqy-zenhei \
+  fonts-arphic-bkai00mp fonts-arphic-bsmi00lp \
   --no-install-recommends \
   && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
   && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
@@ -14,6 +17,10 @@ RUN apt-get update && apt-get install -y \
   google-chrome-stable \
   --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
+
+RUN sed -i -e 's/# zh_TW.UTF-8 UTF-8/zh_TW.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=zh_TW.UTF-8
 
 # Check to see if the the version included in the base runtime satisfies
 # '>=7.6', if not then do an npm install of the latest available
