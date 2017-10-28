@@ -1,4 +1,4 @@
-# Rendertron [![Build status](https://img.shields.io/travis/GoogleChrome/rendertron.svg?style=flat-square)](https://travis-ci.org/GoogleChrome/rendertron)
+# Rendertron [![Build status](https://img.shields.io/travis/GoogleChrome/rendertron.svg?style=flat-square)](https://travis-ci.org/GoogleChrome/rendertron) [![NPM rendertron package](https://img.shields.io/npm/v/rendertron.svg)](https://npmjs.org/package/rendertron)
 
 > Rendertron is a dockerized, headless Chrome rendering solution designed to render & serialise web pages on the fly.
 
@@ -89,12 +89,16 @@ are no outstanding network requests and that the page has had ample time to rend
 There is a hard limit of 10 seconds for rendering. Ensure you don't hit this budget by ensuring
 your application is rendered well before the budget expires.
 
-### Explicit rendering event
+### Explicit rendering flag
 In some cases, the auto loading function may be insufficient, for example if there is content
-being streamed on the page. To explicitly signal when the page is visually complete, fire an
-event as follows:
+being streamed on the page. To explicitly signal when the page is visually complete, set the `window.renderComplete` flag. Add this script in your initial response:
+```html
+<script>
+  window.renderComplete = false;
+</script>
+When rendering is complete, set the flag to `true`.
 ```js
-  myElement.dispatchEvent(new Event('render-complete', { bubbles: true, composed: true}));
+  window.renderComplete = true;
 ```
 
 ### Web components
@@ -125,9 +129,9 @@ This project requires Node 7+ and Docker ([installation instructions](https://do
 project uses the [Google Cloud Platform SDK](https://cloud.google.com/sdk/).
 
 ### Installing
-Install node dependencies using:
+Install rendertron:
 ```bash
-npm install
+npm install -g rendertron
 ```
 
 Install Chrome:
@@ -138,7 +142,7 @@ apt-get install google-chrome
 ### Running locally
 With a local instance of Chrome installed, you can start the server locally:
 ```bash
-npm start
+rendertron
 ```
 
 To test a rendering, send a request:
