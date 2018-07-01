@@ -1,7 +1,7 @@
 # Dockerfile extending the generic Node image with application files for a
 # single application.
 FROM gcr.io/google_appengine/nodejs
-LABEL name="bot-render" \ 
+LABEL name="bot-render" \
       version="0.1" \
       description="Renders a webpage for bot consumption (not production ready)"
 
@@ -28,6 +28,9 @@ RUN sed -i -e 's/# zh_TW.UTF-8 UTF-8/zh_TW.UTF-8 UTF-8/' /etc/locale.gen && \
 RUN /usr/local/bin/install_node '>=7.6'
 
 COPY . /app/
+
+ADD thirdfonts /usr/share/fonts/thirdfonts
+RUN fc-cache -fv
 
 # Add botrender as a user
 RUN groupadd -r botrender && useradd -r -g botrender -G audio,video botrender \

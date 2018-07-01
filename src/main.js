@@ -97,6 +97,18 @@ function track(action, time) {
   }
 }
 
+if (!!config['debug']) {
+  console.log(`Rendertron configured with ${JSON.stringify(config, null, 2)}`);
+  app.get('/render/:url(*)', (req, res, next) => {
+    console.log('Render requested for ' + req.params.url);
+    next();
+  });
+  app.get('/screenshot/:url(*)', (req, res, next) => {
+    console.log('Screenshot requested for ' + req.params.url);
+    next();
+  });
+}
+
 app.get('/render/:url(*)', async(request, response) => {
   if (isRestricted(request.params.url)) {
     response.status(403).send('Render request forbidden, domain excluded');
@@ -169,7 +181,7 @@ app.stop = async() => {
 };
 
 const appPromise = chromeLauncher.launch({
-  chromeFlags: ['--headless', '--disable-gpu', '--remote-debugging-address=0.0.0.0'],
+  chromeFlags: ['--headless', '--no-sandbox', '--remote-debugging-address=0.0.0.0'],
   port: 0
 }).then((chrome) => {
   console.log('Chrome launched with debugging on port', chrome.port);

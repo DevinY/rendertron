@@ -1,4 +1,4 @@
-# Rendertron [![Build status](https://img.shields.io/travis/GoogleChrome/rendertron.svg?style=flat-square)](https://travis-ci.org/GoogleChrome/rendertron) [![NPM rendertron package](https://img.shields.io/npm/v/rendertron.svg)](https://npmjs.org/package/rendertron)
+# Rendertron [![Build status](https://travis-ci.org/GoogleChrome/rendertron.svg?branch=master)](https://travis-ci.org/GoogleChrome/rendertron) [![NPM rendertron package](https://img.shields.io/npm/v/rendertron.svg)](https://npmjs.org/package/rendertron)
 
 > Rendertron is a dockerized, headless Chrome rendering solution designed to render & serialise web pages on the fly.
 
@@ -38,6 +38,7 @@ layer. This checks the user agent to determine whether prerendering is required.
 This is a list of middleware available to use with the Rendertron service:
  * [Express.js middleware](/middleware)
  * [Firebase functions](https://github.com/justinribeiro/pwa-firebase-functions-botrender) (Community maintained)
+ * [ASP.net core middleware](https://github.com/galamai/AspNetCore.Rendertron) (Community maintained)
 
 Rendertron is also compatible with [prerender.io middleware](https://prerender.io/documentation/install-middleware).
 Note: the user agent lists differ there.
@@ -96,7 +97,8 @@ being streamed on the page. To explicitly signal when the page is visually compl
 <script>
   window.renderComplete = false;
 </script>
-When rendering is complete, set the flag to `true`.
+```
+When rendering is complete, set the flag to `true`:
 ```js
   window.renderComplete = true;
 ```
@@ -122,49 +124,60 @@ set the HTTP status returned by the rendering service by adding a meta tag.
 <meta name="render:status_code" content="404" />
 ```
 
+## Running locally
+To install Rendertron and run it locally, first install Rendertron:
+```bash
+npm install -g rendertron
+```
+
+With Chrome installed on your machine run the Rendertron CLI:
+```bash
+rendertron
+```
+
 ## Installing & deploying
 
 ### Dependencies
 This project requires Node 7+ and Docker ([installation instructions](https://docs.docker.com/engine/installation/)). For deployment this
 project uses the [Google Cloud Platform SDK](https://cloud.google.com/sdk/).
 
-### Installing
-Install rendertron:
+### Building from source
+Clone and install dependencies:
 ```bash
-npm install -g rendertron
-```
-
-Install Chrome:
-```bash
-apt-get install google-chrome
+git clone https://github.com/GoogleChrome/rendertron.git
+cd rendertron
+npm install
 ```
 
 ### Running locally
 With a local instance of Chrome installed, you can start the server locally:
 ```bash
-rendertron
+npm run start
 ```
 
-To test a rendering, send a request:
-```
-http://localhost:3000/?url=https://dynamic-meta.appspot.com
-```
-
-### Docker
-After installing docker, build the docker image:
+### Using the Docker image
+After installing docker, build and run the docker image
 ```bash
 docker build -t rendertron . --no-cache=true
-```
-
-### Running the container
-The container enables the cache to run by default, so be sure to disable the cache when running locally.
-
-Building the container:
-```bash
 docker run -it -p 8080:8080 --name rendertron-container rendertron
 ```
 
-### Connection error (ECONNREFUSED)
+Load the homepage in any browser:
+```bash
+http://localhost:8080/
+```
+
+Stop the container:
+```bash
+docker kill rendertron-container
+```
+
+Clear containers:
+```bash
+docker rm -f $(docker ps -a -q)
+```
+
+#### Connection error (ECONNREFUSED)
 In the case where your kernel lacks user namespace support or are receiving a `ECONNREFUSED` error when trying to access the service in the container (as noted in issues [2](https://github.com/GoogleChrome/rendertron/issues/2) and [3](https://github.com/GoogleChrome/rendertron/issues/3)), the two recommended methods below should solve this:
 1. [Recommended] - Use [Jessie Frazelle' seccomp profile](https://github.com/jessfraz/dotfiles/blob/master/etc/docker/seccomp/chrome.json) and `-security-opt` flag
 2. Utilize the `--cap-add SYS_ADMIN` flag
@@ -182,21 +195,15 @@ docker run -it -p 8080:8080 --cap-add SYS_ADMIN --name rendertron-container rend
 
 To check if your kernel is compatible with Docker, follow [Docker's instructions](https://docs.docker.com/engine/installation/linux/linux-postinstall/#troubleshooting). For CentOS 7, which doesn't have user namespaces enabled, you will [need to enable them](https://github.com/GoogleChrome/rendertron/issues/96#issuecomment-328305721).
 
-### Using the container
-Load the homepage in any browser:
-```bash
-http://localhost:8080/
+#### Chrome crashes due to low shared memory
+By default the size of /dev/shm in Docker is 64mb, which may result in Chrome crashes.
+To increase the size of /dev/shm you can specify the size to Docker when running the image.
+```
+docker run ... --shm-size=256m
 ```
 
-Stop the container:
-```bash
-docker kill rendertron-container
-```
-
-Clear containers:
-```bash
-docker rm -f $(docker ps -a -q)
-```
+In the future, it will be possible to using /tmp instead of /dev/shm. See the
+[Chromium bug](https://bugs.chromium.org/p/chromium/issues/detail?id=736452) for more detail.
 
 ### Deploying to Google Cloud Platform
 ```
@@ -210,9 +217,8 @@ root. Available configuration options:
  [tracking id](https://support.google.com/analytics/answer/1008080?hl=en#trackingID) to
  send Rendertron rendering events to analytics.
  * `cache` default `false` - set to `true` to enable caching on Google Cloud using datastore
- * `debug` default `false` - set to `true` to log console messages from within the
- rendered pages.
+ * `debug` default `false` - set to `true` to log requested renders & pipe console messages
+ from within the rendered pages.
  * `renderOnly` - restrict the endpoint to only service requests for certain domains. Specified
  as an array of strings. eg. `['http://render.only.this.domain']`. This is a strict prefix
  match, so ensure you specify the exact protocols that will be used (eg. http, https).
-

@@ -40,15 +40,23 @@ class Renderer {
       Object.defineProperty(window, 'renderComplete', {
         set: function(value) {
           if (value == false) {
-            console.log(LOG_WAITING_FOR_FLAG);
+            console.log('Rendertron: Waiting for rendering flag');
           } else if (value == true) {
-            console.log(LOG_RENDER_COMPLETE);
+            console.log('Rendertron: Rendering complete');
           }
         }
       });
     }
 
     return new Promise(async(resolve, reject) => {
+      let networkIdleTimeout = undefined;
+
+      const onReject = (arg) => {
+        clearTimeout(networkIdleTimeout);
+        clearTimeout(maxTimeout);
+        reject(arg);
+      };
+
       const {Page, Runtime, Network, Emulation, Console} = client;
 
       await Promise.all([
@@ -71,20 +79,13 @@ class Renderer {
       }
 
       // Add hook for completion event.
-      Page.addScriptToEvaluateOnLoad({scriptSource: `(${listenToCompletionFlag.toString()})()`});
+      Page.addScriptToEvaluateOnNewDocument({source: `(${listenToCompletionFlag.toString()})()`});
 
-      if (!!config['debug']) {
-        Console.messageAdded((event) => {
-          console.log(`[${event.message.level}] ${event.message.text}`);
-        });
-      }
-
-      Page.navigate({url: url}).catch(reject);
+      Page.navigate({url: url}).catch(onReject);
 
       // Check that all outstanding network requests have finished loading.
       const outstandingRequests = new Map();
       let initialRequestId = undefined;
-      let networkIdleTimeout = undefined;
 
       Network.requestWillBeSent((event) => {
         if (!initialRequestId)
@@ -115,7 +116,8 @@ class Renderer {
 
       Network.loadingFailed((event) => {
         if (event.requestId == initialRequestId) {
-          reject({message: event.errorText});
+          onReject({message: event.errorText});
+          return;
         }
         outstandingRequests.delete(event.requestId);
         if (outstandingRequests.size == 0) {
@@ -144,6 +146,8 @@ class Renderer {
           waitForFlag = true;
         } else if (event.message.text === LOG_RENDER_COMPLETE) {
           pageReady();
+        } else if (!!config['debug']) {
+          console.log(`[${event.message.level}] ${event.message.text}`);
         }
       });
 
@@ -160,7 +164,13 @@ class Renderer {
         }
       };
 
-      let pageReady = async() => {
+      let pageReady = async function pageReadyFn() {
+        // Synchronously clear timeout & pageReady() to prevent it from
+        // being called again.
+        pageReady = () => {};
+        clearTimeout(networkIdleTimeout);
+        clearTimeout(maxTimeout);
+
         let result = await Runtime.evaluate({expression: `(${getStatusCode.toString()})()`});
 
         // Original status codes which aren't 200 always return with that status code,
@@ -169,8 +179,6 @@ class Renderer {
           statusCode = result.result.value;
 
         resolve({status: statusCode || 200});
-        pageReady = () => {};
-        clearTimeout(maxTimeout);
       };
 
       Emulation.virtualTimeBudgetExpired(pageReady);
@@ -184,6 +192,15 @@ class Renderer {
         pageReady();
       }, 10000);
     });
+  }
+
+  async closeConnection(id, port) {
+    try {
+      await CDP.Close({id: id, port: port});
+    } catch (e) {
+      console.log('Could not close connection');
+      console.log(e);
+    }
   }
 
   serialize(url, options, config) {
@@ -220,11 +237,12 @@ class Renderer {
         await Runtime.evaluate({expression: `(${injectBaseHref.toString()})('${url}')`});
 
         let result = await Runtime.evaluate({expression: 'document.firstElementChild.outerHTML'});
-        CDP.Close({id: client.target.id, port: config.port});
+        await this.closeConnection(client.target.id, config.port);
         resolve({
           status: renderResult.status,
           body: result.result.value});
       } catch (error) {
+        await this.closeConnection(client.target.id, config.port);
         reject(error);
       }
     });
@@ -250,9 +268,10 @@ class Renderer {
         await this._loadPage(client, url, options, config);
         let {data} = await Page.captureScreenshot({format: 'jpeg', quality: 60});
 
-        CDP.Close({id: client.target.id, port: config.port});
+        await this.closeConnection(client.target.id, config.port);
         resolve(data);
       } catch (error) {
+        await this.closeConnection(client.target.id, config.port);
         reject(error);
       }
     });
